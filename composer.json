@@ -1,5 +1,5 @@
 {
-    "name": "momo/kiteq",
+    "name": "kiteq/client",
     "type": "library",
     "description": "kiteq的客户端",
     "keywords": ["sdk", "kiteq", "mq"],
@@ -9,7 +9,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Momo\\Kiteq\\": "src/"
+            "Org\\Kiteq\\": "src/"
         }
     },
     "config": {

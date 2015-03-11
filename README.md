@@ -5,7 +5,7 @@
 ## 使用方法
 
 ```
-$client = new \Momo\Kiteq\Client();
+$client = new \Org\Kiteq\Client();
 
 $client->ip = "localhost";
 $client->port = 13800;

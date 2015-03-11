@@ -1,7 +1,7 @@
 <?php
 require_once "../src/Client.php";
 
-$client = new \Momo\Kiteq\Client();
+$client = new \Org\Kiteq\Client();
 
 $client->ip = "localhost";
 $client->port = 13800;

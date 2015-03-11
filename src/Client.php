@@ -1,5 +1,5 @@
 <?php
-namespace Momo\Kiteq;
+namespace Org\Kiteq;
 
 class Client {
 
