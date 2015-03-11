@@ -3,7 +3,7 @@
     "type": "library",
     "description": "kiteq的客户端",
     "keywords": ["sdk", "kiteq", "mq"],
-    "homepage": "https://git.wemomo.com/meng.jun/kiteq-php-sdk",
+    "homepage": "https://github.com/blackbeans/kiteq-client-php",
     "authors": [
         {"name": "meng.jun", "email": "meng.jun@immomo.com"}
     ],
@@ -14,9 +14,5 @@
     },
     "config": {
         "vendor-dir": "libs"
-    },
-    "repositories": [
-        {"type": "composer", "url": "http://packagist.momo.com"},
-        {"packagist": false}
-    ]
+    }
 }
