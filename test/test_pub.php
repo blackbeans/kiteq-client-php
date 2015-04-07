@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('PRC');
 $begin = microtime(true);
 for ($n=0; $n<$argv[1]; $n++) {
 	$pid = pcntl_fork();

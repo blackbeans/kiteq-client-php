@@ -137,7 +137,7 @@ class ClientManager {
 		if ($count == 0) {
 			throw new \Exception($this->kiteQLookupService." 地址没找到");
 		}
-		$addr = $addrs[mt_rand(0, $count)];
+		$addr = $addrs[mt_rand(0, $count - 1)];
 		$cmd = array(
 			'id' => php_uname('n') . getmypid() . microtime(true),
 			'action' => $this->kiteQLookupService,
@@ -148,13 +148,22 @@ class ClientManager {
 		);
 		$redis = new \Redis();
 		$hostport = explode(':', $addr, 2);
-		$redis->pconnect($hostport[0], $hostport[1], 3000);
-		$serverAddrs = $this->execMoaAdapter($cmd, $redis, 'redis');
+		$redis->pconnect($hostport[0], (int)$hostport[1], 3000);
+		$respJson = $this->execMoaAdapter($cmd, $redis, 'redis');
+		if (!$respJson) {
+			return [];
+		}
+		$rtn = json_decode($respJson, true);
+		if (isset($rtn['ec']) && $rtn['ec'] != 0) {
+			$em = isset($rtn['em']) ? $rtn['em'] : '';
+			throw new \Exception($topic.' 查询kiteq server出错 '.$em);
+		}
+		$serverAddrs = $rtn['result']['hosts'];
 		$serverAddrsCount = count($serverAddrs);
 		if ($serverAddrsCount == 0) {
 			throw new \Exception($topic.' 对应的kiteq server未找到');
 		}
-		$serverAddr = $serverAddrsCount[mt_rand(0, $serverAddrsCount)];
+		$serverAddr = $serverAddrs[mt_rand(0, $serverAddrsCount - 1)];
 		$serverHostport = explode(':', $serverAddr, 2);
 		$client = new Client();
 		$client->ip = $serverHostport[0];

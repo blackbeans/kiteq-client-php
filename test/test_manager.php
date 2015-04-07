@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('PRC');
 $begin = microtime(true);
 for ($n=0; $n<$argv[1]; $n++) {
 	$pid = pcntl_fork();
@@ -8,6 +9,7 @@ for ($n=0; $n<$argv[1]; $n++) {
 		require_once "../src/ClientManager.php";
 
 		$client = new \Org\Kiteq\ClientManager();
+		$client->group = "pb-mts-test";
 
 		$begin = microtime(true)*1000;
 		$beginAll = microtime(true)*1000;
