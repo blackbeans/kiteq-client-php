@@ -5,16 +5,9 @@ for ($n=0; $n<$argv[1]; $n++) {
 	if ($pid) {
 		continue;
 	} else {
-		require_once "../src/Client.php";
+		require_once "../src/ClientManager.php";
 
-		$client = new \Org\Kiteq\Client();
-
-		$client->ip = "172.30.3.124";
-		$client->port = 13800;
-		$client->group = "pb-mts-test";
-		$client->secret = "12345";
-		$client->connect();
-		$client->greet();
+		$client = new \Org\Kiteq\ClientManager();
 
 		$begin = microtime(true)*1000;
 		$beginAll = microtime(true)*1000;

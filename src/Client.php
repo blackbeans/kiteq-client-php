@@ -17,8 +17,13 @@ class Client {
 
 	public $seq = 0;
 
-	private $extension = false;
+	public $jsonEnable = 0;
 
+	public $greeted = false;
+
+	public $connected = false;
+
+	private $extension = false;
 
 	const CMD_CONN_META = 0x02;
 	const CMD_CONN_AUTH = 0x03;
@@ -38,55 +43,123 @@ class Client {
 	}
 
 	public function connect() {
+		if ($this->connected) {
+			return;
+		}
 		if (!isset($this->timeout)) {
 			$this->timeout = 1000;
 		}
-		$this->conn = fsockopen($this->ip, $this->port, $ec, $em, floatval($this->timeout/1000.0));
+		if (!function_exists('kiteq_connect')) {
+            $this->conn = fsockopen($this->ip, $this->port, $ec, $em, floatval($this->timeout/1000.0));
+			$this->greeted = false;
+        } else {
+            list($this->greeted, $this->conn) = kiteq_connect($this->ip, $this->port, intval($this->timeout));
+        }
 		if ($this->conn == false) {
 			throw new \Exception("链接kiteq server失败 $ec $em");
 		}
+		$this->connected = true;
 	}
 
 	public function greet() {
-		$greet = new \ConnMeta();
-		$greet->set_groupId($this->group);
-		$greet->set_secretKey($this->secret);
-		// 发送
-		$this->innerSend($greet->SerializeToString(), self::CMD_CONN_META);
-
-		// 接受
-		list($type, $data)= $this->innerGet();
-		if ($type != self::CMD_CONN_AUTH) {
-			throw new \Exception("kiteq 验证错误 MessageType $type");
+		if ($this->greeted) {
+			return;
 		}
-		$ack = new \ConnAuthAck();
-		$ack->ParseFromString($data);
+		if (!$this->jsonEnable) {
+			$greet = new \ConnMeta();
+			$greet->set_groupId($this->group);
+			$greet->set_secretKey($this->secret);
+			// 发送
+			$this->innerSend($greet->SerializeToString(), self::CMD_CONN_META);
+
+			// 接受
+			list($type, $data)= $this->innerGet();
+			if ($type != self::CMD_CONN_AUTH) {
+				throw new \Exception("kiteq 验证错误 MessageType $type");
+			}
+			$ack = new \ConnAuthAck();
+			$ack->ParseFromString($data);
+		} else {
+			$greet = array('groupId'=>$this->group, 'secret'=>$this->secret);
+			// 发送
+			$this->innerSend(json_encode($greet), self::CMD_CONN_META | 0x80);
+
+			// 接受
+			list($type, $data)= $this->innerGet();
+			if ($type != self::CMD_CONN_AUTH) {
+				throw new \Exception("kiteq 验证错误 MessageType $type");
+			}
+			$ack = json_decode($data, true);
+		}
+		$this->greeted = true;
 	}
 
-	public function publish($topic, $type, $msg) {
-		$msgEntity = new \StringMessage();
-		$msgHeader = new \Header();
-		$msgHeader->set_groupId($this->group);
-		$msgHeader->set_commit(true);
-		$msgHeader->set_deliverLimit(100);
-		$msgHeader->set_expiredTime(-1);
-		$msgHeader->set_fly(false);
-		$msgHeader->set_topic($topic);
-		$msgHeader->set_messageId(uniqid());
-		$msgHeader->set_messageType($type);
-		$msgEntity->set_header($msgHeader);
-		$msgEntity->set_body($msg);
-		$send = $msgEntity->SerializeToString();
-		// 发送
-		$this->innerSend($send, self::CMD_STRING_MESSAGE);
 
-		// 接受
-		list($type, $data)= $this->innerGet();
-		if ($type != self::CMD_MESSAGE_STORE_ACK) {
-			throw new \Exception("kiteq 验证错误 MessageType $type");
+	/**
+	 * @param $topic
+	 * @param $type
+	 * @param $msg
+	 * @throws \Exception
+	 * @return bool
+	 */
+	public function publish($topic, $type, $msg) {
+		if (!$this->connected) {
+			$this->connect();
 		}
-		$ack = new \MessageStoreAck();
-		$ack->ParseFromString($data);
+		if (!$this->greeted) {
+			$this->greet();
+		}
+		if (!$this->jsonEnable) {
+			$msgEntity = new \StringMessage();
+			$msgHeader = new \Header();
+			$msgHeader->set_groupId($this->group);
+			$msgHeader->set_commit(true);
+			$msgHeader->set_deliverLimit(100);
+			$msgHeader->set_expiredTime(-1);
+			$msgHeader->set_fly(false);
+			$msgHeader->set_topic($topic);
+			$msgHeader->set_messageId(uniqid());
+			$msgHeader->set_messageType($type);
+			$msgEntity->set_header($msgHeader);
+			$msgEntity->set_body($msg);
+			$send = $msgEntity->SerializeToString();
+			// 发送
+			$this->innerSend($send, self::CMD_STRING_MESSAGE);
+
+			// 接受
+			list($type, $data)= $this->innerGet();
+			if ($type != self::CMD_MESSAGE_STORE_ACK) {
+				throw new \Exception("kiteq 验证错误 MessageType $type");
+			}
+			$ack = new \MessageStoreAck();
+			$ack->ParseFromString($data);
+			return $ack->getStatus();
+		} else {
+			$msgEntity = array();
+			$msgHeader = array(
+				'groupId' => $this->group,
+				'commit'=>true,
+				'deliverLimit'=>100,
+				'expiredTime'=>-1,
+				'fly'=>false,
+				'topic'=>$topic,
+				'messageId'=>uniqid(),
+				'messageType'=>$type,
+			);
+			$msgEntity['header']= $msgHeader;
+			$msgEntity['body'] = $msg;
+			$send = json_encode($msgEntity);
+			// 发送
+			$this->innerSend($send, self::CMD_STRING_MESSAGE|0x80);
+
+			// 接受
+			list($type, $data)= $this->innerGet();
+			if ($type != self::CMD_MESSAGE_STORE_ACK) {
+				throw new \Exception("kiteq 验证错误 MessageType $type");
+			}
+			$ack = json_decode($data, true);
+			return $ack->getStatus();
+		}
 	}
 
 	private function innerSend($data, $type) {
