@@ -220,7 +220,7 @@ static int _kiteq_connect(kiteq_client *client) {
 	remote_addr.sin_port = htons(client->port);
 	if (connect(client->sockfd, (struct sockaddr *)&remote_addr, sizeof(struct sockaddr))<0) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", strerror(errno));
-    return 1;
+        return 1;
 	}
 #ifdef KITEQ_DEBUG
 	php_printf("dail %d\n", client->sockfd);
@@ -235,21 +235,21 @@ PHP_FUNCTION(kiteq_request) {
 	zval *client_link = NULL;
 	int client_link_id = -1;
 	kiteq_client *client = NULL;
-  struct timeval tv; 
-  long begin,end;
+    struct timeval tv;
+    long begin,end;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsl", &client_link, &data, &len, &type) == FAILURE) {
-	  RETURN_FALSE;
-  }
+        RETURN_FALSE;
+    }
 #ifdef KITEQ_DEBUG
 	gettimeofday(&tv,NULL);
 	begin = tv.tv_usec;
 #endif
 	// 获取连接
 	ZEND_FETCH_RESOURCE(client, kiteq_client*, &client_link, client_link_id, "kiteq connection", le_kiteq_conns);
-  if (client == NULL) {
-    php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", "kiteq server not find in persistent list");
-    RETURN_FALSE
-  }
+    if (client == NULL) {
+        php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", "kiteq server not find in persistent list");
+        RETURN_FALSE;
+    }
 #ifdef KITEQ_DEBUG
 	gettimeofday(&tv,NULL);
 	end = tv.tv_usec;
@@ -296,9 +296,10 @@ PHP_FUNCTION(kiteq_request) {
 	php_printf("send to fd :%d\n", client->sockfd);
 #endif
 	if (send(client->sockfd, (char *)p, sizeof(packet) + len + 2, 0) < 0) {
-    // 发送超时 从持久化资源列表删除
-    zend_list_delete(Z_LVAL_P(client_link));
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "%s", strerror(errno));
+        // 发送超时 从持久化资源列表删除
+        zend_list_delete(Z_LVAL_P(client_link));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "kiteq send packet timeout : %s", strerror(errno));
+		RETURN_FALSE;
 	}
 #ifdef KITEQ_DEBUG
 	gettimeofday(&tv,NULL);
@@ -310,10 +311,10 @@ PHP_FUNCTION(kiteq_request) {
 	int ret;
 	// 获取结果
 	if ((ret = recv(client->sockfd, (char *)p, sizeof(packet), 0)) <= 0) {
-    // 读取超时 从持久化资源列表删除
-    zend_list_delete(Z_LVAL_P(client_link));
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", strerror(errno));
-		RETURN_FALSE
+        // 读取超时 从持久化资源列表删除
+        zend_list_delete(Z_LVAL_P(client_link));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "kiteq read packet header timeout : %s", strerror(errno));
+		RETURN_FALSE;
 	}
 #ifdef KITEQ_DEBUG
 	gettimeofday(&tv,NULL);
@@ -343,10 +344,10 @@ PHP_FUNCTION(kiteq_request) {
 	php_printf("realloc data use %ld ns\n", begin - end);
 #endif
 	if (recv(client->sockfd, (char*)p+sizeof(packet), len + 2, 0) <= 0) {
-    // 读取超时 从持久化资源列表删除
-    zend_list_delete(Z_LVAL_P(client_link));
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "%s", strerror(errno));
-		RETURN_FALSE
+        // 读取超时 从持久化资源列表删除
+        zend_list_delete(Z_LVAL_P(client_link));
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "kiteq read packet body timeout : %s", strerror(errno));
+		RETURN_FALSE;
 	}
 #ifdef KITEQ_DEBUG
 	gettimeofday(&tv,NULL);
@@ -369,8 +370,8 @@ PHP_FUNCTION(kiteq_connect) {
 	char *hashkey;
 	zend_rsrc_list_entry *le;
 	kiteq_client *client;
-  zval *client_link;
-  int new = 0;
+    zval *client_link;
+    int new = 0;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sll", &host, &host_len, &port, &timeout) == FAILURE) {
 		RETURN_FALSE;
 	}
@@ -379,34 +380,34 @@ PHP_FUNCTION(kiteq_connect) {
 #ifdef KITEQ_DEBUG
 		php_printf("new connection %s\n", hashkey);
 #endif
-		zend_rsrc_list_entry new_le;
-		  client = (kiteq_client*)emalloc(sizeof(kiteq_client));
-  		client->host = host;
-  		client->port = port;
-  		client->seq = 0;
-  		client->tv.tv_sec = timeout/1000;
-  		client->tv.tv_usec = (timeout % 1000) * 1000;	
-  		if (_kiteq_connect(client) != 0) {
-        efree(client);
-        RETURN_FALSE
-      }
-  		// 注册到持久化列表里
-  		Z_TYPE(new_le) = le_kiteq_conns;
-  		new_le.ptr = client;
-  		zend_hash_update(&EG(persistent_list),
-			hashkey, strlen(hashkey)+1, (void *) &new_le, sizeof(zend_rsrc_list_entry), NULL);
-      new = 1;
+        zend_rsrc_list_entry new_le;
+        client = (kiteq_client*)emalloc(sizeof(kiteq_client));
+        client->host = host;
+        client->port = port;
+        client->seq = 0;
+        client->tv.tv_sec = timeout/1000;
+        client->tv.tv_usec = (timeout % 1000) * 1000;
+        if (_kiteq_connect(client) != 0) {
+            efree(client);
+            RETURN_FALSE;
+        }
+        // 注册到持久化列表里
+        Z_TYPE(new_le) = le_kiteq_conns;
+        new_le.ptr = client;
+        zend_hash_update(&EG(persistent_list),
+            hashkey, strlen(hashkey)+1, (void *) &new_le, sizeof(zend_rsrc_list_entry), NULL);
+        new = 1;
 	} else {
 		client = (kiteq_client *) le->ptr;
 	}
 
-  MAKE_STD_ZVAL(client_link);
-  ZEND_REGISTER_RESOURCE(client_link, client, le_kiteq_conns);
+    MAKE_STD_ZVAL(client_link);
+    ZEND_REGISTER_RESOURCE(client_link, client, le_kiteq_conns);
 
-  array_init(return_value);
+    array_init(return_value);
 
-  add_next_index_long(return_value, new);
-  zend_hash_next_index_insert(Z_ARRVAL_P(return_value), &client_link, sizeof(zval *), NULL);
+    add_next_index_long(return_value, new);
+    zend_hash_next_index_insert(Z_ARRVAL_P(return_value), &client_link, sizeof(zval *), NULL);
 	
 }
 
