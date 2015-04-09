@@ -128,7 +128,7 @@ class Client {
 			$msgEntity->set_header($msgHeader);
 			$msgEntity->set_body($msg);
 			$send = $msgEntity->SerializeToString();
-			if (class_exists('kiteq_request')) {
+			if (function_exists('kiteq_request')) {
 				list($data, $type) = kiteq_request($this->conn, $send, self::CMD_STRING_MESSAGE);
 			} else {
 				// 发送
@@ -159,7 +159,7 @@ class Client {
 			$msgEntity['header']= $msgHeader;
 			$msgEntity['body'] = $msg;
 			$send = json_encode($msgEntity);
-			if (class_exists('kiteq_request')) {
+			if (function_exists('kiteq_request')) {
 				list($data, $type) = kiteq_request($this->conn, $send, self::CMD_STRING_MESSAGE|0x80);
 			} else {
 				// 发送
