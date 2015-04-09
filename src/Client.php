@@ -144,6 +144,9 @@ class Client {
 			}
 			$ack = new \MessageStoreAck();
 			$ack->ParseFromString($data);
+			if ($ack->getStatus() == false) {
+				throw new \Exception($ack->getFeedback());
+			}
 			return $ack->getStatus();
 		} else {
 			$msgEntity = array();
@@ -173,6 +176,9 @@ class Client {
 				throw new \Exception("kiteq 验证错误 MessageType $type");
 			}
 			$ack = json_decode($data, true);
+			if ($ack->getStatus() == false) {
+				throw new \Exception($ack->getFeedback());
+			}
 			return $ack->getStatus();
 		}
 	}

@@ -40,7 +40,7 @@ class Guid
 
 	public function toString()
 	{
-		$raw = strtoupper($this->valueAfterMD5);
+		$raw = strtolower($this->valueAfterMD5);
 		return substr($raw,0,8).substr($raw,8,4).substr($raw,12,4).substr($raw,16,4).substr($raw,20);
 	}
 
