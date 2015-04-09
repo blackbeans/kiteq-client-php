@@ -53,7 +53,8 @@ class Client {
             $this->conn = fsockopen($this->ip, $this->port, $ec, $em, floatval($this->timeout/1000.0));
 			$this->greeted = false;
         } else {
-            list($this->greeted, $this->conn) = kiteq_connect($this->ip, $this->port, intval($this->timeout));
+            list($new, $this->conn) = kiteq_connect($this->ip, $this->port, intval($this->timeout));
+			$this->greeted= !$new;
         }
 		if ($this->conn == false) {
 			throw new \Exception("链接kiteq server失败 $ec $em");
