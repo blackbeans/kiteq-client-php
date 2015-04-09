@@ -123,7 +123,8 @@ class Client {
 			$msgHeader->set_expiredTime(-1);
 			$msgHeader->set_fly(false);
 			$msgHeader->set_topic($topic);
-			$msgHeader->set_messageId(uniqid());
+			$guid = new Guid();
+			$msgHeader->set_messageId($guid->toString());
 			$msgHeader->set_messageType($type);
 			$msgEntity->set_header($msgHeader);
 			$msgEntity->set_body($msg);
