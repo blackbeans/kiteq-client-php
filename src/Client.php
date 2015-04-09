@@ -69,11 +69,16 @@ class Client {
 			$greet = new \ConnMeta();
 			$greet->set_groupId($this->group);
 			$greet->set_secretKey($this->secret);
-			// 发送
-			$this->innerSend($greet->SerializeToString(), self::CMD_CONN_META);
+			if (function_exists('kiteq_request')) {
+				list($data, $type) = kiteq_request($this->conn, $greet->SerializeToString(), self::CMD_CONN_META);
+			} else {
+				// 发送
+				$this->innerSend($greet->SerializeToString(), self::CMD_CONN_META);
 
-			// 接受
-			list($type, $data)= $this->innerGet();
+				// 接受
+				list($type, $data)= $this->innerGet();
+			}
+
 			if ($type != self::CMD_CONN_AUTH) {
 				throw new \Exception("kiteq 验证错误 MessageType $type");
 			}
@@ -123,11 +128,16 @@ class Client {
 			$msgEntity->set_header($msgHeader);
 			$msgEntity->set_body($msg);
 			$send = $msgEntity->SerializeToString();
-			// 发送
-			$this->innerSend($send, self::CMD_STRING_MESSAGE);
+			if (class_exists('kiteq_request')) {
+				list($data, $type) = kiteq_request($this->conn, $send, self::CMD_STRING_MESSAGE);
+			} else {
+				// 发送
+				$this->innerSend($send, self::CMD_STRING_MESSAGE);
 
-			// 接受
-			list($type, $data)= $this->innerGet();
+				// 接受
+				list($type, $data)= $this->innerGet();
+			}
+
 			if ($type != self::CMD_MESSAGE_STORE_ACK) {
 				throw new \Exception("kiteq 验证错误 MessageType $type");
 			}
@@ -149,11 +159,15 @@ class Client {
 			$msgEntity['header']= $msgHeader;
 			$msgEntity['body'] = $msg;
 			$send = json_encode($msgEntity);
-			// 发送
-			$this->innerSend($send, self::CMD_STRING_MESSAGE|0x80);
+			if (class_exists('kiteq_request')) {
+				list($data, $type) = kiteq_request($this->conn, $send, self::CMD_STRING_MESSAGE|0x80);
+			} else {
+				// 发送
+				$this->innerSend($send, self::CMD_STRING_MESSAGE|0x80);
 
-			// 接受
-			list($type, $data)= $this->innerGet();
+				// 接受
+				list($type, $data)= $this->innerGet();
+			}
 			if ($type != self::CMD_MESSAGE_STORE_ACK) {
 				throw new \Exception("kiteq 验证错误 MessageType $type");
 			}
