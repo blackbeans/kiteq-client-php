@@ -92,7 +92,7 @@ class ClientManager {
 		if ($addr) {
 			return $addr;
 		}
-		$host = "moa_lookup.momo.com";
+		$host = "lookup.qq.com";
 		$port = 31001;
 		if ($this->lookupServer == null) {
 			$mc = new \Memcache();
