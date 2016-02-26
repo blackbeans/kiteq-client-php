@@ -185,36 +185,57 @@ class Client {
 	}
 
 	private function innerSend($data, $type) {
-		$len = strlen($data);
+		$dataLen = strlen($data);
+		$len = $dataLen + 23;
 		$write = "";
-		$write .= pack("N", $this->seq++);
-		$write .= pack("C1", $type);
+		// length
 		$write .= pack("N", $len);
-		$write .= $data."\r\n";
+		// seq
+		$write .= pack("N", $this->seq++);
+		// type
+		$write .= pack("C1", $type);
+		// version
+		$write .= pack("C1", 0);
+		$write .= pack("C1", 0);
+		// dataLen
+		$write .= pack("N", $dataLen);
+		// extension
+		$write .= pack("N", 0);
+		$write .= pack("N", 0);
+		// body
+		$write .= $data;
 		fwrite($this->conn, $write);
 	}
 
 	private function innerGet() {
+		// length
+		$bs = fread($this->conn, 4);
+		if ($bs == false) {
+			throw new \Exception("读取length错误");
+		}
+		$length = ord($bs[0])<<24 | ord($bs[1]) << 16 | ord($bs[2]) << 8 | ord($bs[3]);
+		// req
 		$r = fread($this->conn, 4);
 		if ($r == false) {
 			throw new \Exception("读取seq错误");
 		}
+		// type
 		$r = fread($this->conn, 1);
 		if ($r == false) {
 			throw new \Exception("读取type错误");
 		}
 		$type = ord($r);
-		$bs = fread($this->conn, 4);
-		if ($r == false) {
-			throw new \Exception("读取length错误");
+		// version 
+		$version = fread($this->conn, 1);
+		// extension
+		$extension = fread($this->conn, 8);
+		// bodyLen
+		$bodyLenBs = fread($this->conn, 4);
+		if ($bodyLenBs == false) {
+			throw new \Exception("读取body length错误");
 		}
-		$length = ord($bs[0])<<24 | ord($bs[1]) << 16 | ord($bs[2]) << 8 | ord($bs[3]);
-		$data = fread($this->conn, $length);
-		// skip \r\n
-		$r = fread($this->conn, 2);
-		if ($r != "\r\n") {
-			throw new \Exception("读取\\r\\n失败");
-		}
+		$bodyLen = ord($bodyLenBs[0])<<24 | ord($bodyLenBs[1]) << 16 | ord($bodyLenBs[2]) << 8 | ord($bodyLenBs[3]);
+		$data = fread($this->conn, $bodyLen);
 		return array($type, $data);
 	}
 }
