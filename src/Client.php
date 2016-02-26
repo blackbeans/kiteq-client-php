@@ -145,10 +145,10 @@ class Client {
 			}
 			$ack = new \MessageStoreAck();
 			$ack->ParseFromString($data);
-			if ($ack->getStatus() == false) {
-				throw new \Exception($ack->getFeedback());
+			if ($ack->status() == false) {
+				throw new \Exception($ack->feedback());
 			}
-			return $ack->getStatus();
+			return $ack->status();
 		} else {
 			$msgEntity = array();
 			$msgHeader = array(
@@ -177,16 +177,16 @@ class Client {
 				throw new \Exception("kiteq 验证错误 MessageType $type");
 			}
 			$ack = json_decode($data, true);
-			if ($ack->getStatus() == false) {
-				throw new \Exception($ack->getFeedback());
+			if ($ack->status() == false) {
+				throw new \Exception($ack->feedback());
 			}
-			return $ack->getStatus();
+			return $ack->status();
 		}
 	}
 
 	private function innerSend($data, $type) {
 		$dataLen = strlen($data);
-		$len = $dataLen + 23;
+		$len = $dataLen + 19;
 		$write = "";
 		// length
 		$write .= pack("N", $len);
@@ -197,11 +197,11 @@ class Client {
 		// version
 		$write .= pack("C1", 0);
 		$write .= pack("C1", 0);
-		// dataLen
-		$write .= pack("N", $dataLen);
 		// extension
 		$write .= pack("N", 0);
 		$write .= pack("N", 0);
+		// dataLen
+		$write .= pack("N", $dataLen);
 		// body
 		$write .= $data;
 		fwrite($this->conn, $write);
@@ -226,7 +226,7 @@ class Client {
 		}
 		$type = ord($r);
 		// version 
-		$version = fread($this->conn, 1);
+		$version = fread($this->conn, 2);
 		// extension
 		$extension = fread($this->conn, 8);
 		// bodyLen
